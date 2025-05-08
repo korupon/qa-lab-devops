@@ -1,0 +1,29 @@
+pipeline {
+    agent any
+    stages {
+        stage('Build') {
+            steps {
+                echo 'Building project...'
+                script {
+                    sh 'docker build -t test-runner .'
+                }
+            }
+        }
+        stage('Test') {
+            steps {
+                echo 'Running tests with Nomad...'
+                script {
+                    sh 'nomad job run nomad/test-job.hcl'
+                }
+            }
+        }
+        stage('Publish') {
+            steps {
+                echo 'Publishing test results...'
+                script {
+                    sh 'aws s3 cp tests/test_results.xml s3://your-bucket/test_results.xml'
+                }
+            }
+        }
+    }
+}
