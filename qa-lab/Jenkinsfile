@@ -1,0 +1,43 @@
+pipeline {
+    agent any
+
+    environment {
+        SLACK_CHANNEL = '#your-channel'
+    }
+
+    options {
+        ansiColor('xterm')
+    }
+
+    stages {
+        stage('Build') {
+            steps {
+                echo 'Building project...'
+                sh 'docker build -t test-runner .'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                echo 'Running tests with Nomad...'
+                sh 'nomad job run nomad/test-job.hcl'
+            }
+        }
+
+        stage('Publish') {
+            steps {
+                echo 'Publishing test results...'
+                sh 'bash scripts/upload_to_s3.sh'
+            }
+        }
+    }
+
+    post {
+        success {
+            slackSend(channel: env.SLACK_CHANNEL, message: "✅ Build *SUCCEEDED* for ${env.JOB_NAME} #${env.BUILD_NUMBER}")
+        }
+        failure {
+            slackSend(channel: env.SLACK_CHANNEL, message: "❌ Build *FAILED* for ${env.JOB_NAME} #${env.BUILD_NUMBER}")
+        }
+    }
+}
