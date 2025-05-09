@@ -1,43 +1,78 @@
 pipeline {
-    agent any
+  agent any
 
-    environment {
-        SLACK_CHANNEL = '#your-channel'
+  environment {
+    SLACK_CHANNEL = 'C08RQ2LJREX'
+    SLACK_TOKEN_ID = 'slack-new' // The Jenkins credential ID for your xoxb- bot token
+  }
+
+  options {
+    timestamps()
+  }
+
+  stages {
+    stage('Start Notification') {
+      steps {
+        script {
+          slackSend(
+            channel: env.SLACK_CHANNEL,
+            color: '#439FE0',
+            message: "🚀 *Build Started* for `${env.JOB_NAME}` #${env.BUILD_NUMBER} (<${env.BUILD_URL}|View Job>)",
+            tokenCredentialId: env.SLACK_TOKEN_ID,
+            botUser: true
+          )
+        }
+      }
     }
 
-    options {
-        ansiColor('xterm')
+    stage('Build') {
+      steps {
+        echo 'Building...'
+        // Simulate success or failure
+        // error("Simulated failure") // Uncomment to test failure handling
+      }
     }
 
-    stages {
-        stage('Build') {
-            steps {
-                echo 'Building project...'
-                sh 'docker build -t test-runner .'
-            }
-        }
-
-        stage('Test') {
-            steps {
-                echo 'Running tests with Nomad...'
-                sh 'nomad job run nomad/test-job.hcl'
-            }
-        }
-
-        stage('Publish') {
-            steps {
-                echo 'Publishing test results...'
-                sh 'bash scripts/upload_to_s3.sh'
-            }
-        }
+    stage('Test') {
+      steps {
+        echo 'Testing...'
+      }
     }
 
-    post {
-        success {
-            slackSend(channel: env.SLACK_CHANNEL, message: "✅ Build *SUCCEEDED* for ${env.JOB_NAME} #${env.BUILD_NUMBER}")
-        }
-        failure {
-            slackSend(channel: env.SLACK_CHANNEL, message: "❌ Build *FAILED* for ${env.JOB_NAME} #${env.BUILD_NUMBER}")
-        }
+    stage('Deploy') {
+      steps {
+        echo 'Deploying...'
+      }
     }
+  }
+
+  post {
+    success {
+      slackSend(
+        channel: env.SLACK_CHANNEL,
+        color: 'good',
+        message: "✅ *Build Succeeded* for `${env.JOB_NAME}` #${env.BUILD_NUMBER}",
+        tokenCredentialId: env.SLACK_TOKEN_ID,
+        botUser: true
+      )
+    }
+    failure {
+      slackSend(
+        channel: env.SLACK_CHANNEL,
+        color: 'danger',
+        message: "❌ *Build Failed* for `${env.JOB_NAME}` #${env.BUILD_NUMBER}",
+        tokenCredentialId: env.SLACK_TOKEN_ID,
+        botUser: true
+      )
+    }
+    aborted {
+      slackSend(
+        channel: env.SLACK_CHANNEL,
+        color: '#808080',
+        message: "⚠️ *Build Aborted* for `${env.JOB_NAME}` #${env.BUILD_NUMBER}",
+        tokenCredentialId: env.SLACK_TOKEN_ID,
+        botUser: true
+      )
+    }
+  }
 }
